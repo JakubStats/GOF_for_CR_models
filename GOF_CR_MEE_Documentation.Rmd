@@ -1,0 +1,377 @@
+---
+title: "Documentation and tutorials for *DHARMa diagnostics in closed-population capture–recapture
+  models*"
+author: "Documentation and tutorial supplement"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    theme: readable
+  pdf_document:
+    toc: true
+    toc_depth: '3'
+params:
+  full_grid: true
+  run_applications: true
+  make_figures: true
+  output_dir: outputs
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width  = 10,
+  fig.height = 6,
+  cache   = FALSE
+)
+set.seed(params$seed)
+if (!dir.exists(params$output_dir))
+  dir.create(params$output_dir, recursive = TRUE)
+```
+
+# Required packages and helper functions
+
+```{r packages}
+core_pkgs <- c("DHARMa", "VGAM", "mgcv", "secr", "dplyr", "tibble")
+missing_pkgs <- core_pkgs[!vapply(core_pkgs, requireNamespace,
+                                  logical(1), quietly = TRUE)]
+if (length(missing_pkgs) > 0)
+  stop("Install required packages: ", paste(missing_pkgs, collapse = ", "))
+
+library(DHARMa)
+library(VGAM)
+library(mgcv)
+library(secr)
+library(dplyr)
+library(tibble)
+
+source("CR_GOF_Functions.R")
+```
+
+---
+
+# Data-preparation functions (Web Appendix B)
+
+`prepare_recap_data_Mh()` returns one row per observed individual, with
+`Y_recap = Y_i - 1` (recaptures) and `n_opp = tau - t_i` (opportunities).
+
+`prepare_recap_data_Mtbh()` returns one Bernoulli row per post-first-capture
+occasion, with `cap_prev` (previous-occasion indicator) and `occasion` (factor).
+
+```{r show-prep-functions, eval=FALSE}
+# Binomial partial-likelihood data (M_h models).
+
+pl_mh <- prepare_recap_data_Mh(cap_hist, covariates, tau)
+
+# Bernoulli partial-likelihood data (M_t / M_b / M_bh / M_th / M_tbh).
+
+pl_mtbh <- prepare_recap_data_Mtbh(cap_hist, covariates, tau)
+```
+
+
+# Real-data applications (Web Appendix C)
+
+These chunks reproduce Examples 1 and 3 of Web Appendix C. All file paths are 
+relative; set `run_applications: true` in the YAML parameters to execute them.
+
+## Mountain Pygmy PossumData (Web Appendix C1)
+
+Expected file: `poss2003.RData`, containing `data$x.obs` and `data$cap.hist`.
+
+```{r application-possum, eval=params$run_applications}
+if (!file.exists("poss2003.RData")) {
+  message("Skipping possum example: poss2003.RData not found.")
+} else {
+  load("poss2003.RData")
+  body.weight <- scale(data$x.obs[-c(2, 27)])
+colnames(body.weight) <- "body.weight"
+
+cap.hist <- data$cap.hist[-c(2, 27), ]
+
+tau <- ncol(cap.hist)    # Number of capture occasions.
+
+D <- nrow(cap.hist)      # Number of unique individuals captured.
+
+#...............................................................................
+
+# Test data for closure using the Stanley--Burnham test via the secr R-package.
+
+captXY <- c()
+
+for(i in 1: nrow(cap.hist)) {
+  Occasion <- which (cap.hist[i, ] > 0)
+  yy <- length(Occasion)
+  ID <- rep(i, yy)
+  Session <- rep(1, yy)
+  ind1 <- cbind(Session, ID, Occasion)
+  captXY <- rbind(captXY, ind1)
+}
+
+closure.test(make.capthist(captXY, traps = NULL, 
+                           fmt = c("trapID"), noccasions = tau))
+
+# A low p-value (typically less than 0.05) suggests that the population is NOT 
+# closed and that an open population model (like the Jolly-Seber, CJS, POPAN 
+# model) should be used instead.
+
+# Here the P-value is 0.53320675, it's likely to be a closed population.
+
+#...............................................................................
+
+# Construct (Binomial) recapture-based quantities under the partial likelihood 
+# for fitting M_h-only models.
+
+pl_data <- prepare_recap_data_Mh(cap.hist, body.weight, tau)
+
+# Fit a M_h GLM.
+
+mod_mh_glm <- glm(cbind(Y_recap, n_opp - Y_recap) ~ body.weight, 
+                 family = binomial(link = "logit"), data = pl_data)
+
+residuals_output1 <- simulateResiduals(mod_mh_glm, n = 2000)
+
+# Fit a M_h GAM.
+
+mod_mh_gam <- gam(cbind(Y_recap, n_opp - Y_recap) ~ s(body.weight, bs = "ps"), 
+                family = binomial(link = "logit"), gamma = 1.4, data = pl_data)
+
+# Construct (Bernoulli) recapture-based quantities under the partial likelihood
+# for fitting M_t- and M_b-type models.
+
+pl_data <- prepare_recap_data_Mtbh(cap.hist, body.weight, tau)
+
+# Fit an M_bh GAM (accounts for behave effects and hete.).
+
+mod_mbh_gam <- gam(Y_recap ~ s(body.weight, bs = "ps") + cap_prev, 
+               family = binomial(link = "logit"), gamma = 1.4, data = pl_data)
+
+# Fit a M_tbh-type GAM (accounts for time, behave effects and hete.).
+
+mod_mtbh_gam <- gam(Y_recap ~ s(body.weight, bs = "ps") + cap_prev + occasion, 
+                family = binomial(link = "logit"), gamma = 1.4, data = pl_data)
+
+model_names <- c("(a) Model: M_h GLM", "(b) Model: M_h GAM", 
+                 "(c) Model: M_bh GAM", "(d) Model: M_tbh GAM")
+
+models <- list(mod_mh_glm, mod_mh_gam, mod_mbh_gam, mod_mtbh_gam)
+
+for(i in 1:4) {
+  if(i == 1 | i == 2) {
+    plot(DHARMa::simulateResiduals(models[[i]], n = 2000,
+                                      main = paste("Model:", model_names[i])))
+  }
+  if(i == 3 | i == 4) {
+    
+    group_weight <- aggregate(body.weight ~ ID, data = pl_data, 
+                              FUN = mean)$body.weight
+    par(mfrow = c(1, 2))
+    res_plot0 <- DHARMa::simulateResiduals(models[[i]], n = 2000,
+                                            main = paste("Model:", 
+                                                         model_names[i]))
+    res_plot <- recalculateResiduals(res_plot0, group = pl_data$ID)
+    
+    plotQQunif(res_plot)
+    plotResiduals(res_plot, group_weight)
+  }
+  
+  mtext(paste("", model_names[i]), side = 3, line = -1.5, 
+        outer = TRUE, adj = 0.1, cex = 1.7)
+}
+
+#...............................................................................
+
+# Get the population size from fitting model a M_bh GAM using the partial 
+# likelihood and the Huggins' conditional likelihood (CL).
+
+mbh_study_grid <- expand.grid(ID = unique(pl_data$ID), occ = 1:tau)
+
+# For Huggins M_bh, we usually assume cap_prev = 0 for the "potential" 
+# probability of the first capture.
+
+mbh_study_grid$body.weight <- body.weight[mbh_study_grid$ID] 
+mbh_study_grid$cap_prev <- 0 
+
+mbh_preds <- predict(mod_mbh_gam, newdata = mbh_study_grid, type = "response")
+mbh_preds_list <- split(mbh_preds, mbh_study_grid$ID)
+
+pi_i <- sapply(mbh_preds_list, function(x) 1 - prod(1 - x))
+pi_i2 <- sapply(mbh_preds_list, function(x) prod(1 - x))
+
+N_hat1 <- sum(1/pi_i)         # The Horvitz-Thompson estimator.
+
+# To obtain the standard error for the N_hat1, we use a Taylor's series approx.
+# see Stoklosa et al. (2011) for further details.
+
+var.beta <- mod_mbh_gam$Ve
+X_des <- model.matrix(mod_mbh_gam, newdata = mbh_study_grid)
+
+pi02 <- (1 - pi_i)/pi_i/pi_i
+cz0.dot <- absorb(X_des*c(mbh_preds), tau)
+d1 <- apply(pi02*cz0.dot, 2, sum)
+var_N_hat1 <- sum((1 - pi_i)/pi_i/pi_i) + d1%*%var.beta%*%d1
+
+suppressWarnings(detach("package:mgcv", unload = TRUE))
+
+library(VGAM)
+
+data_Mbh_VGAM <- data.frame(cbind(cap.hist, body.weight))
+
+colnames(data_Mbh_VGAM) <- c("y1", "y2", "y3", "y4", "y5", "body.weight")
+  
+M_bh_VGAM <- vgam(cbind(y1, y2, y3, y4, y5) ~ s(body.weight, df = 1.5), 
+               posbernoulli.b, data = data_Mbh_VGAM, trace = FALSE) 
+
+N_hat2 <- M_bh_VGAM@extra$N.hat
+
+# Population size estimate (standard error) for M_bh using partial likelihood:
+
+print(c(N_hat1, sqrt(var_N_hat1)))
+
+# Population size estimate (standard error) for M_bh using conditional likelihood:
+
+print(c(N_hat2, M_bh_VGAM@extra$SE.N.hat)) # Standard errors for N_hat.
+}
+```
+
+
+## Edinburgh Taxicab Data (Web Appendix C3)
+
+Expected file: `TaxiM.inp` (available from the MARK software repository).
+
+Population size is estimated under $M_t$ (via VGAM conditional likelihood)
+and $M_{th}$ (via `TMB_conditional_GLMM.cpp`, which implements the fully
+marginalised conditional-likelihood GLMM described in Web Appendix D6).
+
+```{r application-taxicab, eval=params$run_applications}
+if (!file.exists("TaxiM.inp")) {
+  message("Skipping taxicab example: TaxiM.inp not found.")
+} else {
+  
+  cpp_file <- "TMB_eps_NEW2.cpp"
+  dll_name <- "TMB_eps_NEW2"
+  if (file.exists(cpp_file)) {
+    TMB::compile(cpp_file, 
+                 flags = "-Wno-ignored-attributes -O2 -mfpmath=sse -msse2 -mstackrealign")
+    dyn.load(TMB::dynlib(dll_name))
+    
+    lines      <- readLines("TaxiM.inp")
+    data_lines <- lines[grepl(";", lines)]
+    ch_strings <- gsub(".*\\*/\\s*([01]+).*", "\\1", data_lines)
+    cap.hist   <- matrix(as.numeric(unlist(strsplit(ch_strings, ""))),
+                         ncol = nchar(ch_strings[1]), byrow = TRUE)
+    tau <- ncol(cap.hist)   # tau = 10
+    D   <- nrow(cap.hist)
+    
+    captXY <- c()
+    
+    for(i in 1: nrow(cap.hist)) {
+      Occasion <- which (cap.hist[i, ] > 0)
+      yy <- length(Occasion)
+      ID <- rep(i, yy)
+      Session <- rep(1, yy)
+      ind1 <- cbind(Session, ID, Occasion)
+      captXY <- rbind(captXY, ind1)
+    }
+    
+    closure.test(make.capthist(captXY, traps = NULL, fmt = c("trapID"), 
+                               noccasions = tau))
+    
+    # A low p-value (typically less than 0.05) suggests that the population is NOT 
+    # closed and that an open population model should be used instead.
+    
+    # Here, the P-value is 0.4615, it's likely to be a closed population.
+    
+    #...............................................................................
+    
+    # Construct (Bernoulli) recapture-based quantities under the partial likelihood
+    # for fitting M_t- and M_b-type models.
+    
+    pl_data1 <- prepare_recap_data_Mtbh(cap.hist, NULL, tau)
+    
+    # Fit a M_0 GLM (constant model).
+    
+    mod_m0_glm <- glm(Y_recap ~ 1, data = pl_data1, 
+                      family = binomial(link = "logit"))
+    
+    # Fit a M_t GLM (accounts for time effects only).
+    
+    mod_mt_glm <- glm(Y_recap ~ occasion, data = pl_data1, 
+                      family = binomial(link = "logit"))
+    
+    # Fit model M_t with VGAM (which uses the Huggins conditional likelihood) 
+    # to get the population size estimate
+    
+    VGAM_data_Mt <- data.frame(cap.hist)
+    colnames(VGAM_data_Mt) <- c("y1", "y2", "y3", "y4", "y5", 
+                                "y6", "y7", "y8", "y9", "y10")
+    
+    M_t <- vglm(cbind(y1, y2, y3, y4, y5, y6, y7, y8, y9, y10) ~ 1, 
+                posbernoulli.t, data = VGAM_data_Mt, trace = FALSE) 
+    
+    N_hat1 <- M_t@extra$N.hat
+    
+    model_names <- c("(a) Model: M_0 GLM", "(b) M_t GLM")
+    models <- list(mod_m0_glm, mod_mt_glm)
+    
+    for(i in 1:2) {
+      res_plot <- DHARMa::simulateResiduals(models[[i]], n = 1000,
+                                            main = paste("Model:", model_names[i]))
+      plot(recalculateResiduals(res_plot, group = pl_data1$ID))
+      
+      mtext(paste("", model_names[i]), side = 3, line = -2, 
+            outer = TRUE, adj = 0.1, cex = 1.7)
+    }
+    
+    #...............................................................................
+    
+    # Get the population size estimates from fitting model M_th (GLMM) using 
+    # Huggins conditional likelihood. This model is a fully marginalized CL model
+    # that uses Laplace approximation via TMB.
+    
+    tidbits_data <- list(y = as.matrix(cap.hist))
+    
+    tidbits_parameters <- list(
+      time_effects = numeric(ncol(cap.hist)),
+      individual_effects = rep(0, D),
+      logsigma_individual_effects = log(1) 
+    )
+    
+    tidbits_random <- c("individual_effects")
+    
+    objs <- TMB::MakeADFun(data = tidbits_data, 
+                           parameters = tidbits_parameters, 
+                           random = tidbits_random, 
+                           DLL = dll_name, silent = TRUE)
+    
+    fit_RE_marg <- nlminb(start = objs$par, objective = objs$fn, gradient = objs$gr, 
+                          control = list(trace = 0, iter.max = 5000, eval.max = 5000))
+    
+    fit_RE_marg_results <- TMB::sdreport(objs, bias.correct = FALSE, 
+                                         ignore.parm.uncertainty = FALSE, 
+                                         skip.delta.method = FALSE)
+    fit_RE_marg_estimates <- as.list(fit_RE_marg_results, what = "Estimate", 
+                                     report = TRUE)
+    fit_RE_marg_all_results <- summary(fit_RE_marg_results, 
+                                       select = "report", p.value = TRUE) %>% 
+      as.data.frame() %>% tibble::rownames_to_column(var = "Parameters")
+    
+    # Get the population size estimate.
+    
+    N_hat2 <- fit_RE_marg_all_results %>% 
+      dplyr::filter(Parameters == "population_size")
+    
+    # Population size estimate (standard error) for M_t:
+    
+    print(c(N_hat1, M_t@extra$SE.N.hat))
+    
+    # Population size estimate (standard error) for M_th:
+    
+    print(c(N_hat2$Estimate, N_hat2$`Std. Error`))
+  }
+}
+```
+
