@@ -30,10 +30,13 @@ Custom functions:
   - CR_GOF_Functions.R
 
 Data files:
-  - poss2003.RData (Obtained from Stoklosa et al. (2012).
+  - poss2003.RData (Obtained from Stoklosa et al. (2012)). It contains capture histories as well as
+    body weight measurements for each capture possum. The number of unique possums captured is D = 43.
+    The number of capture occasions is 5. 
   - TaxiM.inp (obtained from the publicly avaiable software MARK: White, G. C. & Burnham, K. P. (1999). 
-     Program MARK: survival estimation from populations of marked animals. Bird study, 
-     46, S120–S139)
+    Program MARK: survival estimation from populations of marked animals. Bird study, 
+    46, S120–S139). It only contains capture histories across 10 capture occasions. The number of unique
+    taxi cabs identified (or captured) is D = 283.
 
 Additional C++ files:
   - TMB_eps_NEW2.cpp
