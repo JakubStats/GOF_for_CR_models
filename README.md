@@ -134,14 +134,14 @@ reproducibility of the reported results.
 NOTES
 -------------------------------------------------------------------------------
 
-The code was developed and tested in R (version 4.x).
+The code was developed and tested in R (version 4.6.0).
 
 The custom functions contained in:
 
   CR_GOF_Functions.R
 
-prepare capture-recapture data under the partial likelihood framework and
-provides helper functions used throughout the analyses.
+which prepares capture-recapture data under the partial likelihood framework. 
+For additional details, see Web Appendix B.
 
 -------------------------------------------------------------------------------
 CONTACT
