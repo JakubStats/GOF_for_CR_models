@@ -5,7 +5,7 @@ capture-recapture models.”
 
 Jakub Stoklosa, Bernice Laitly, and Pierre Lafaye de Micheaux. 
 
-Submitted to Methods in Ecology and Evolution.
+Accepted in Methods in Ecology and Evolution.
 
 All real examples and simulation studies are presented in the accompanying supplementary 
 materials (Web Appendices C and D).
