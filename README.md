@@ -1,6 +1,4 @@
 -------------------------------------------------------------------------------
-[![DOI](https://zenodo.org/badge/1068249756.svg)](https://doi.org/10.5281/zenodo.20621527)
-
 README: Reproducible R-code for "Residual diagnostics for assessing closed population 
 capture-recapture models.” 
 -------------------------------------------------------------------------------
@@ -11,6 +9,8 @@ Accepted in Methods in Ecology and Evolution.
 
 All real examples and simulation studies are presented in the accompanying supplementary 
 materials (Web Appendices C and D).
+
+10.5281/zenodo.20621528 [![DOI](https://zenodo.org/badge/1068249756.svg)](https://doi.org/10.5281/zenodo.20621527)
 
 -------------------------------------------------------------------------------
 FILES INCLUDED
