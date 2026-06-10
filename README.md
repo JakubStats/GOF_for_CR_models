@@ -1,4 +1,6 @@
 -------------------------------------------------------------------------------
+10.5281/zenodo.20621528
+
 README: Reproducible R-code for "Residual diagnostics for assessing closed population 
 capture-recapture models.” 
 -------------------------------------------------------------------------------
