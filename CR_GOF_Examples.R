@@ -233,7 +233,7 @@ closure.test(make.capthist(captXY, traps = NULL,
 # closed and that an open population model (like the Jolly-Seber, CJS, POPAN 
 # model) should be used instead.
 
-# Here the P-value is 0.7778398, it's likely to be a closed population.
+# Here, the P-value is 0.7778398, it's likely to be a closed population.
 
 #...............................................................................
 
@@ -245,7 +245,7 @@ colnames(X.obs) <- c("age", "sex", "weight")
 
 pl_data <- prepare_recap_data_Mtbh(as.matrix(cap.hist), X.obs, tau)
 
-# Fit a M_b GLM (accounts for behave effects only).
+# Fit a M_b GLM (accounts for behavior effects only).
 
 mod_mb <- glm(Y_recap ~ cap_prev, family = binomial(link = "logit"), 
               data = pl_data)
@@ -253,7 +253,7 @@ mod_mb <- glm(Y_recap ~ cap_prev, family = binomial(link = "logit"),
 residuals_output1 <- simulateResiduals(mod_mb, n = 1000)
 res_grouped1 <- recalculateResiduals(residuals_output1, group = pl_data$ID)
 
-# Fit a M_bh-type GLM (accounts for behave effects and hete.).
+# Fit a M_bh-type GLM (accounts for behavior effects and hete.).
 
 mod_mbh <- glm(Y_recap ~ age + sex + weight + cap_prev, 
                 family = binomial(link = "logit"), data = pl_data)
@@ -261,7 +261,7 @@ mod_mbh <- glm(Y_recap ~ age + sex + weight + cap_prev,
 residuals_output2 <- simulateResiduals(mod_mbh, n = 1000)
 res_grouped2 <- recalculateResiduals(residuals_output2, group = pl_data$ID)
 
-# Fit a M_tbh-type GLM (accounts for behave effects, time and hete.).
+# Fit a M_tbh-type GLM (accounts for behave effects, time, and hete.).
 
 mod_mtbh <- glm(Y_recap ~ age + sex + weight + cap_prev + occasion, 
                family =  binomial(link = "logit"), data = pl_data)
@@ -285,8 +285,8 @@ for(i in 1:3) {
 
 #-------------------------------------------------------------------------------
 # Real data example 3: The (well-known) taxicab data from Carothers (1973).
-# We obtained the taxicab dataset from the RMark R- package Laake (2013), which 
-# is also available through the MARK software White & Burnham (1999). 
+# We obtained the taxicab dataset (Scheme A) from the MARK software White & 
+# Burnham (1999). 
 #-------------------------------------------------------------------------------
 
 library(RMark)
