@@ -118,7 +118,7 @@ closure.test(make.capthist(captXY, traps = NULL,
 # closed and that an open population model (like the Jolly-Seber, CJS, POPAN 
 # model) should be used instead.
 
-# Here the P-value is 0.53320675, it's likely to be a closed population.
+# Here, the P-value is 0.53320675, it's likely to be a closed population.
 
 #...............................................................................
 
@@ -144,12 +144,12 @@ mod_mh_gam <- gam(cbind(Y_recap, n_opp - Y_recap) ~ s(body.weight, bs = "ps"),
 
 pl_data <- prepare_recap_data_Mtbh(cap.hist, body.weight, tau)
 
-# Fit an M_bh GAM (accounts for behave effects and hete.).
+# Fit an M_bh GAM (accounts for behavioral effects and hete.).
 
 mod_mbh_gam <- gam(Y_recap ~ s(body.weight, bs = "ps") + cap_prev, 
                family = binomial(link = "logit"), gamma = 1.4, data = pl_data)
 
-# Fit a M_tbh-type GAM (accounts for time, behave effects and hete.).
+# Fit a M_tbh-type GAM (accounts for time, behavioral effects, and hete.).
 
 mod_mtbh_gam <- gam(Y_recap ~ s(body.weight, bs = "ps") + cap_prev + occasion, 
                 family = binomial(link = "logit"), gamma = 1.4, data = pl_data)
@@ -203,7 +203,7 @@ pi_i2 <- sapply(mbh_preds_list, function(x) prod(1 - x))
 
 N_hat1 <- sum(1/pi_i)         # The Horvitz-Thompson estimator.
 
-# To obtain the standard error for the N_hat1, we use a Taylor's series approx.
+# To obtain the standard error for the N_hat1, we use a Taylor series approx.
 # see Stoklosa et al. (2011) for further details.
 
 var.beta <- mod_mbh_gam$Ve
@@ -238,7 +238,7 @@ print(c(N_hat2, M_bh_VGAM@extra$SE.N.hat)) # Standard errors for N_hat.
 ```
 
 
-## Edinburgh Taxicab Data (Web Appendix C3)
+## Edinburgh Taxicab (Scheme A) Data (Web Appendix C3)
 
 Expected file: `TaxiM.inp` (available from the MARK software repository).
 
