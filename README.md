@@ -1,6 +1,6 @@
 -------------------------------------------------------------------------------
-README: Reproducible R-code for "Residual diagnostics for assessing closed population 
-capture-recapture models.” 
+README: Reproducible R-code for "Residual diagnostics for assessing closed 
+population capture-recapture models.” 
 -------------------------------------------------------------------------------
 
 Jakub Stoklosa, Bernice Laitly, and Pierre Lafaye de Micheaux. 
